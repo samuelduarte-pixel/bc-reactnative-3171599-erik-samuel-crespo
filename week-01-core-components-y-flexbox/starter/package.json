@@ -8,10 +8,15 @@
     "ios": "expo start --ios"
   },
   "dependencies": {
-    "expo": "53.0.0",
+    "@babel/core": "^7.26.0",
+    "@expo/metro-runtime": "~5.0.5",
+    "@types/react": "~19.0.10",
+    "expo": "~53.0.27",
     "expo-status-bar": "2.2.3",
     "react": "19.0.0",
-    "react-native": "0.79.2"
+    "react-dom": "19.0.0",
+    "react-native": "0.79.6",
+    "react-native-web": "^0.20.0"
   },
   "devDependencies": {
     "@babel/core": "7.25.2",
