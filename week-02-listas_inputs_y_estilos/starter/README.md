@@ -70,10 +70,10 @@ Mantiene el tema oscuro del starter con acento rosa (`#F472B6`) coherente con el
 
 ```bash
 # 1. Instalar dependencias
-npm install
+pnpm install
 
 # 2. Iniciar Expo
-npx expo start
+pnpm start
 
 # 3. Escanear QR con Expo Go en el celular
 #    o presionar 'i' para iOS simulator / 'a' para Android emulator
