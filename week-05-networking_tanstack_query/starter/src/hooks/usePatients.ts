@@ -4,58 +4,17 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../services/api';
-import type { CreatePatientPayload, Patient, RawPost, RawUser } from '../types';
+import { SPANISH_PATIENTS } from '../data/patientData';
+import type { CreatePatientPayload, Patient } from '../types';
 
 export const PATIENTS_QUERY_KEY = ['patients'] as const;
-
-const TREATMENTS: Patient['treatmentType'][] = [
-  'IVF', 'IUI', 'FET', 'ICSI', 'Ovodonación', 'Estimulación ovárica',
-];
-
-const STATUSES: Patient['cycleStatus'][] = [
-  'Activo', 'En espera', 'Completado', 'Cancelado',
-];
-
-const DOCTORS = [
-  'Dra. María Andrade',
-  'Dr. Carlos Méndez',
-  'Dra. Lucía Vega',
-  'Dr. Felipe Rojas',
-];
-
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 9301 + 49297) * 49297;
-  return x - Math.floor(x);
-}
-
-function mapToPatient(user: RawUser, post: RawPost): Patient {
-  const s = seededRandom(user.id);
-  return {
-    id: user.id,
-    name: user.name,
-    age: 25 + Math.floor(s * 20),
-    diagnosis: post.title,
-    description: post.body,
-    treatmentType: TREATMENTS[Math.floor(seededRandom(user.id + 1) * TREATMENTS.length)],
-    cycleStatus: STATUSES[Math.floor(seededRandom(user.id + 2) * STATUSES.length)],
-    assignedDoctor: DOCTORS[Math.floor(seededRandom(user.id + 3) * DOCTORS.length)],
-    cycleNumber: 1 + Math.floor(seededRandom(user.id + 4) * 4),
-    startDate: `2025-0${1 + Math.floor(s * 9)}-${10 + Math.floor(s * 18)}`,
-    nextAppointment: `2025-0${3 + Math.floor(s * 7)}-${10 + Math.floor(s * 18)}`,
-  };
-}
 
 export function usePatients() {
   return useQuery<Patient[]>({
     queryKey: PATIENTS_QUERY_KEY,
     queryFn: async () => {
-      const [usersRes, postsRes] = await Promise.all([
-        apiClient.get<RawUser[]>('/users?_limit=15'),
-        apiClient.get<RawPost[]>('/posts?_limit=15'),
-      ]);
-      return usersRes.data.map((user, i) =>
-        mapToPatient(user, postsRes.data[i] ?? postsRes.data[0]),
-      );
+      await apiClient.get('/posts?_limit=1');
+      return SPANISH_PATIENTS.map((p, i) => ({ id: i + 1, ...p }));
     },
   });
 }
@@ -64,12 +23,11 @@ export function usePatientById(id: string | number) {
   return useQuery<Patient>({
     queryKey: [...PATIENTS_QUERY_KEY, id],
     queryFn: async () => {
-      const numId = Number(id);
-      const [userRes, postRes] = await Promise.all([
-        apiClient.get<RawUser>(`/users/${numId}`),
-        apiClient.get<RawPost>(`/posts/${numId}`),
-      ]);
-      return mapToPatient(userRes.data, postRes.data);
+      await apiClient.get(`/posts/${id}`);
+      const index = Number(id) - 1;
+      const p = SPANISH_PATIENTS[index];
+      if (!p) throw new Error('Paciente no encontrado');
+      return { id: Number(id), ...p };
     },
     enabled: !!id,
   });
@@ -79,24 +37,12 @@ export function useCreatePatient() {
   const queryClient = useQueryClient();
   return useMutation<Patient, Error, CreatePatientPayload>({
     mutationFn: async (payload) => {
-      const { data } = await apiClient.post<RawPost>('/posts', {
+      const { data } = await apiClient.post<{ id: number }>('/posts', {
         title: payload.diagnosis,
         body: payload.description,
         userId: 1,
       });
-      return {
-        id: data.id,
-        name: payload.name,
-        age: payload.age,
-        diagnosis: payload.diagnosis,
-        description: payload.description,
-        treatmentType: payload.treatmentType,
-        cycleStatus: payload.cycleStatus,
-        assignedDoctor: payload.assignedDoctor,
-        cycleNumber: payload.cycleNumber,
-        startDate: payload.startDate,
-        nextAppointment: payload.nextAppointment,
-      };
+      return { id: data.id, ...payload };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PATIENTS_QUERY_KEY });
