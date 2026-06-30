@@ -19,34 +19,60 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCreatePatient } from '../hooks/usePatients';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
+import type { CycleStatus, TreatmentType } from '../types';
 
 type CreateNavProp = NativeStackNavigationProp<RootStackParamList, 'Create'>;
+
+const TREATMENTS: TreatmentType[] = [
+  'IVF', 'IUI', 'FET', 'ICSI', 'Ovodonación', 'Estimulación ovárica',
+];
+
+const STATUSES: CycleStatus[] = ['Activo', 'En espera'];
+
+const DOCTORS = [
+  'Dra. María Andrade',
+  'Dr. Carlos Méndez',
+  'Dra. Lucía Vega',
+  'Dr. Felipe Rojas',
+];
 
 export function CreateScreen(): React.JSX.Element {
   const navigation = useNavigation<CreateNavProp>();
   const [name, setName] = useState('');
-  const [body, setBody] = useState('');
+  const [age, setAge] = useState('');
+  const [diagnosis, setDiagnosis] = useState('');
+  const [description, setDescription] = useState('');
+  const [treatmentType, setTreatmentType] = useState<TreatmentType>('IVF');
+  const [cycleStatus, setCycleStatus] = useState<CycleStatus>('Activo');
+  const [assignedDoctor, setAssignedDoctor] = useState(DOCTORS[0]);
 
   const { isPending, mutate } = useCreatePatient();
 
   function handleSubmit(): void {
-    if (!name.trim()) return;
+    if (!name.trim() || !age.trim()) return;
 
     mutate(
       {
-        userId: 1,
         name: name.trim(),
-        body: body.trim(),
+        age: Number(age),
+        diagnosis: diagnosis.trim() || 'Sin diagnóstico',
+        description: description.trim() || 'Paciente nueva en seguimiento',
+        treatmentType,
+        cycleStatus,
+        assignedDoctor,
+        cycleNumber: 1,
+        startDate: new Date().toISOString().split('T')[0],
+        nextAppointment: '',
       },
       {
         onSuccess: () => {
           navigation.goBack();
         },
-      }
+      },
     );
   }
 
-  const canSubmit = name.trim().length > 0 && !isPending;
+  const canSubmit = name.trim().length > 0 && age.trim().length > 0 && !isPending;
 
   return (
     <KeyboardAvoidingView
@@ -68,24 +94,102 @@ export function CreateScreen(): React.JSX.Element {
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="Nombre del paciente..."
+            placeholder="Nombre completo..."
             placeholderTextColor={COLORS.textMuted}
             returnKeyType="next"
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Descripcion / Diagnostico</Text>
+          <Text style={styles.fieldLabel}>
+            Edad <Text style={styles.required}>*</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={age}
+            onChangeText={setAge}
+            placeholder="Edad..."
+            placeholderTextColor={COLORS.textMuted}
+            keyboardType="numeric"
+            returnKeyType="next"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Diagnóstico</Text>
+          <TextInput
+            style={styles.input}
+            value={diagnosis}
+            onChangeText={setDiagnosis}
+            placeholder="Diagnóstico..."
+            placeholderTextColor={COLORS.textMuted}
+            returnKeyType="next"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Descripción</Text>
           <TextInput
             style={[styles.input, styles.multiline]}
-            value={body}
-            onChangeText={setBody}
-            placeholder="Diagnostico o descripcion..."
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Descripción del caso..."
             placeholderTextColor={COLORS.textMuted}
             multiline
-            numberOfLines={4}
+            numberOfLines={3}
             textAlignVertical="top"
           />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Tratamiento</Text>
+          <View style={styles.chipRow}>
+            {TREATMENTS.map((t) => (
+              <Pressable
+                key={t}
+                style={[styles.chip, treatmentType === t && styles.chipActive]}
+                onPress={() => setTreatmentType(t)}
+              >
+                <Text style={[styles.chipText, treatmentType === t && styles.chipTextActive]}>
+                  {t}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Estado del ciclo</Text>
+          <View style={styles.chipRow}>
+            {STATUSES.map((s) => (
+              <Pressable
+                key={s}
+                style={[styles.chip, cycleStatus === s && styles.chipActive]}
+                onPress={() => setCycleStatus(s)}
+              >
+                <Text style={[styles.chipText, cycleStatus === s && styles.chipTextActive]}>
+                  {s}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Médico asignado</Text>
+          <View style={styles.chipRow}>
+            {DOCTORS.map((d) => (
+              <Pressable
+                key={d}
+                style={[styles.chip, assignedDoctor === d && styles.chipActive]}
+                onPress={() => setAssignedDoctor(d)}
+              >
+                <Text style={[styles.chipText, assignedDoctor === d && styles.chipTextActive]}>
+                  {d}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         <Pressable
@@ -145,7 +249,32 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.body,
   },
   multiline: {
-    minHeight: 100,
+    minHeight: 80,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+  },
+  chip: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  chipActive: {
+    backgroundColor: COLORS.accent + '22',
+    borderColor: COLORS.accent,
+  },
+  chipText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  chipTextActive: {
+    color: COLORS.accent,
+    fontWeight: '600',
   },
   button: {
     backgroundColor: COLORS.accent,

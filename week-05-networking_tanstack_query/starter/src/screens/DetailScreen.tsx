@@ -2,7 +2,7 @@
 // Detalle de paciente — consume datos desde la API con TanStack Query
 
 import React from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 
 import { usePatientById } from '../hooks/usePatients';
@@ -10,6 +10,13 @@ import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type DetailRouteProp = RouteProp<RootStackParamList, 'Detail'>;
+
+const STATUS_COLORS: Record<string, string> = {
+  'Activo': COLORS.success,
+  'En espera': COLORS.warning,
+  'Completado': '#58a6ff',
+  'Cancelado': COLORS.error,
+};
 
 export function DetailScreen(): React.JSX.Element {
   const route = useRoute<DetailRouteProp>();
@@ -21,6 +28,7 @@ export function DetailScreen(): React.JSX.Element {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={styles.loadingText}>Cargando paciente...</Text>
       </View>
     );
   }
@@ -34,40 +42,72 @@ export function DetailScreen(): React.JSX.Element {
     );
   }
 
+  if (!patient) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>Paciente no encontrado</Text>
+      </View>
+    );
+  }
+
+  const initials = patient.name.split(' ').map((n) => n[0]).slice(0, 2).join('');
+  const statusColor = STATUS_COLORS[patient.cycleStatus] ?? COLORS.textMuted;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Text style={styles.heroLetter}>{name.charAt(0)}</Text>
+          <Text style={styles.heroLetter}>{initials}</Text>
         </View>
-        <Text style={styles.title}>{name}</Text>
-        <Text style={styles.idBadge}>ID: {id}</Text>
+        <Text style={styles.name}>{patient.name}</Text>
+        <Text style={styles.age}>{patient.age} años</Text>
+        <View style={[styles.statusPill, { backgroundColor: statusColor + '22', borderColor: statusColor + '55' }]}>
+          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+          <Text style={[styles.statusPillText, { color: statusColor }]}>{patient.cycleStatus}</Text>
+        </View>
       </View>
 
-      {patient ? (
-        <View style={styles.fieldsCard}>
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Diagnostico</Text>
-            <Text style={styles.fieldValue}>{patient.body}</Text>
-          </View>
-          {patient.title && (
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Titulo</Text>
-              <Text style={styles.fieldValue}>{patient.title}</Text>
-            </View>
-          )}
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Usuario ID</Text>
-            <Text style={styles.fieldValue}>{patient.userId}</Text>
+      <View style={styles.descCard}>
+        <Text style={styles.descLabel}>Descripción</Text>
+        <Text style={styles.descText}>{patient.description}</Text>
+      </View>
+
+      <View style={styles.fieldsCard}>
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Diagnóstico</Text>
+          <Text style={styles.fieldValue}>{patient.diagnosis}</Text>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Tipo de tratamiento</Text>
+          <View style={styles.treatmentBadge}>
+            <Text style={styles.treatmentText}>{patient.treatmentType}</Text>
           </View>
         </View>
-      ) : (
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            No se encontro informacion del paciente.
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Médico asignado</Text>
+          <Text style={styles.fieldValue}>👩‍⚕️ {patient.assignedDoctor}</Text>
+        </View>
+
+        <View style={styles.rowFields}>
+          <View style={[styles.field, { flex: 1 }]}>
+            <Text style={styles.fieldLabel}>Ciclo N°</Text>
+            <Text style={[styles.fieldValue, styles.bigNumber]}>{patient.cycleNumber}</Text>
+          </View>
+          <View style={[styles.field, { flex: 1 }]}>
+            <Text style={styles.fieldLabel}>Inicio</Text>
+            <Text style={styles.fieldValue}>{patient.startDate}</Text>
+          </View>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Próxima cita</Text>
+          <Text style={[styles.fieldValue, { color: COLORS.accent }]}>
+            📅 {patient.nextAppointment}
           </Text>
         </View>
-      )}
+      </View>
     </ScrollView>
   );
 }
@@ -87,6 +127,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: SPACING.md,
+    padding: SPACING.lg,
+  },
+  loadingText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
   },
   hero: {
     alignItems: 'center',
@@ -104,24 +149,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroLetter: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '700',
     color: COLORS.accent,
   },
-  title: {
+  name: {
     ...TYPOGRAPHY.h2,
     textAlign: 'center',
   },
-  idBadge: {
-    ...TYPOGRAPHY.label,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    backgroundColor: COLORS.card,
+  age: {
+    ...TYPOGRAPHY.caption,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
+    borderWidth: 1,
+    marginTop: SPACING.xs,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
     borderRadius: RADIUS.full,
+  },
+  statusPillText: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '500',
+  },
+  descCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: SPACING.xs,
+  },
+  descLabel: {
+    ...TYPOGRAPHY.label,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  descText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
   },
   fieldsCard: {
     backgroundColor: COLORS.card,
@@ -142,19 +216,27 @@ const styles = StyleSheet.create({
   fieldValue: {
     ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
-    lineHeight: 22,
   },
-  infoBox: {
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  bigNumber: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.accent,
   },
-  infoText: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+  rowFields: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  treatmentBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.accent + '22',
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  treatmentText: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '600',
+    color: COLORS.accent,
   },
   errorText: {
     ...TYPOGRAPHY.h3,

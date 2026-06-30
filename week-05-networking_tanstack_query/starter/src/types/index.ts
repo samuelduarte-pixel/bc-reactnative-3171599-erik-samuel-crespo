@@ -6,8 +6,8 @@ export type TreatmentType =
   | 'IUI'
   | 'FET'
   | 'ICSI'
-  | 'Ovodonacion'
-  | 'Estimulacion ovarica';
+  | 'Ovodonación'
+  | 'Estimulación ovárica';
 
 export type CycleStatus =
   | 'Activo'
@@ -16,17 +16,33 @@ export type CycleStatus =
   | 'Cancelado';
 
 export interface Patient {
-  id: string | number;
-  userId: number;
+  id: number;
   name: string;
-  body: string;
-  title?: string;
-  age?: number;
-  diagnosis?: string;
-  treatmentType?: TreatmentType;
-  cycleStatus?: CycleStatus;
-  assignedDoctor?: string;
-  nextAppointment?: string;
+  age: number;
+  diagnosis: string;
+  description: string;
+  treatmentType: TreatmentType;
+  cycleStatus: CycleStatus;
+  assignedDoctor: string;
+  cycleNumber: number;
+  startDate: string;
+  nextAppointment: string;
 }
 
 export type CreatePatientPayload = Omit<Patient, 'id'>;
+
+export interface RawUser {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  company: { name: string; catchPhrase: string };
+}
+
+export interface RawPost {
+  id: number;
+  userId: number;
+  title: string;
+  body: string;
+}

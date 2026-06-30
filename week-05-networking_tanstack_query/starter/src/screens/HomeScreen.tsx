@@ -14,19 +14,30 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { usePatients } from '../hooks/usePatients';
+import { usePatients, useDeletePatient } from '../hooks/usePatients';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../theme';
 import type { Patient } from '../types';
 import type { RootStackParamList } from '../navigation/types';
 
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
+const STATUS_COLORS: Record<string, string> = {
+  'Activo': COLORS.success,
+  'En espera': COLORS.warning,
+  'Completado': '#58a6ff',
+  'Cancelado': COLORS.error,
+};
+
 interface PatientCardProps {
   patient: Patient;
   onPress: () => void;
+  onDelete: () => void;
 }
 
-function PatientCard({ patient, onPress }: PatientCardProps): React.JSX.Element {
+function PatientCard({ patient, onPress, onDelete }: PatientCardProps): React.JSX.Element {
+  const initials = patient.name.split(' ').map((n) => n[0]).slice(0, 2).join('');
+  const statusColor = STATUS_COLORS[patient.cycleStatus] ?? COLORS.textMuted;
+
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}
@@ -34,17 +45,34 @@ function PatientCard({ patient, onPress }: PatientCardProps): React.JSX.Element 
       testID={`patient-card-${patient.id}`}
     >
       <View style={styles.cardAvatar}>
-        <Text style={styles.cardAvatarText}>
-          {String(patient.name).charAt(0).toUpperCase()}
-        </Text>
+        <Text style={styles.cardAvatarText}>{initials}</Text>
       </View>
       <View style={styles.cardContent}>
-        <Text style={styles.cardTitle} numberOfLines={1}>{patient.name}</Text>
-        {patient.body && (
-          <Text style={styles.cardSubtitle} numberOfLines={2}>{patient.body}</Text>
-        )}
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle} numberOfLines={1}>{patient.name}</Text>
+          <Text style={styles.ageChip}>{patient.age} a.</Text>
+        </View>
+        <Text style={styles.cardDiagnosis} numberOfLines={1}>{patient.diagnosis}</Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.treatmentBadge}>
+            <Text style={styles.treatmentText}>{patient.treatmentType}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {patient.cycleStatus}
+            </Text>
+          </View>
+        </View>
+        <Text style={styles.doctorText}>👩‍⚕️ {patient.assignedDoctor}</Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Pressable
+        style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.6 }]}
+        onPress={(e) => { e.stopPropagation?.(); onDelete(); }}
+        accessibilityLabel={`Eliminar ${patient.name}`}
+      >
+        <Text style={styles.deleteBtnText}>✕</Text>
+      </Pressable>
     </Pressable>
   );
 }
@@ -53,6 +81,7 @@ export function HomeScreen(): React.JSX.Element {
   const navigation = useNavigation<HomeNavProp>();
 
   const { isLoading, isError, data, refetch, isFetching, error } = usePatients();
+  const { mutate: deletePatient, isPending: isDeleting } = useDeletePatient();
 
   if (isLoading) {
     return (
@@ -78,7 +107,10 @@ export function HomeScreen(): React.JSX.Element {
   const renderItem: ListRenderItem<Patient> = ({ item }) => (
     <PatientCard
       patient={item}
-      onPress={() => navigation.navigate('Detail', { id: item.id, name: String(item.name) })}
+      onPress={() => navigation.navigate('Detail', { id: item.id, name: item.name })}
+      onDelete={() => {
+        if (!isDeleting) deletePatient(item.id);
+      }}
     />
   );
 
@@ -149,27 +181,94 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardAvatarText: {
     ...TYPOGRAPHY.h3,
     color: COLORS.accent,
+    fontSize: 16,
   },
   cardContent: {
     flex: 1,
     gap: SPACING.xs,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   cardTitle: {
     ...TYPOGRAPHY.body,
     fontWeight: '600',
+    flex: 1,
   },
-  cardSubtitle: {
+  ageChip: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textMuted,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+    borderRadius: RADIUS.full,
+    overflow: 'hidden',
+  },
+  cardDiagnosis: {
     ...TYPOGRAPHY.caption,
   },
-  chevron: {
-    ...TYPOGRAPHY.h2,
+  badgeRow: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    flexWrap: 'wrap',
+  },
+  treatmentBadge: {
+    backgroundColor: COLORS.accent + '22',
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+  },
+  treatmentText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.accent,
+    fontSize: 11,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: RADIUS.full,
+  },
+  statusText: {
+    ...TYPOGRAPHY.label,
+    fontSize: 11,
+  },
+  doctorText: {
+    ...TYPOGRAPHY.label,
     color: COLORS.textMuted,
+    fontSize: 11,
+  },
+  deleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  deleteBtnText: {
+    fontSize: 12,
+    color: COLORS.error,
+    fontWeight: '600',
   },
   loadingText: {
     ...TYPOGRAPHY.body,
