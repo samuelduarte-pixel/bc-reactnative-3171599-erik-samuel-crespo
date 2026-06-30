@@ -22,6 +22,10 @@
       },
       "package": "dev.bootcamp.clinicafertilidad"
     },
-    "newArchEnabled": true
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ]
   }
 }
