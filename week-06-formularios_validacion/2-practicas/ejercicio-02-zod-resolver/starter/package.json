@@ -1,0 +1,23 @@
+{
+  "name": "week06-ejercicio-02",
+  "version": "1.0.0",
+  "main": "App.tsx",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios"
+  },
+  "dependencies": {
+    "expo": "53.0.0",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-hook-form": "7.72.1",
+    "zod": "3.25.76",
+    "@hookform/resolvers": "5.2.2"
+  },
+  "devDependencies": {
+    "@babel/core": "7.26.10",
+    "@types/react": "19.1.0",
+    "typescript": "5.8.3"
+  }
+}
