@@ -142,7 +142,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     padding: SPACING.md,
-    color: COLORS.textPrimary,
     ...TYPOGRAPHY.body,
   },
   multiline: {
