@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Clínica Fertilidad",
+    "slug": "clinica-fertilidad-persistencia",
+    "version": "1.0.0",
+    "platforms": ["ios", "android", "web"],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1117"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "dev.bootcamp.clinicafertilidad.persistencia"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0d1117"
+      },
+      "package": "dev.bootcamp.clinicafertilidad.persistencia"
+    },
+    "newArchEnabled": true
+  }
+}
